@@ -31,6 +31,7 @@ Gem::Specification.new do |spec|
 
   # Uncomment to register a new dependency of your gem
   spec.add_dependency 'aws-sdk-s3', '~> 1.0'
+  spec.add_dependency 'net-ftp', '~> 0.2'
   spec.add_dependency 'rexml', '~> 3.2'
   spec.add_dependency 'sensu-plugin', '~> 4.0'
 
