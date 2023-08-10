@@ -1,6 +1,6 @@
 FROM sensu-ruby32-runtime-3.2.2-debian12:0.1.2
 ARG ASSET_GEM=sensu-plugins-backup
-ARG GIT_REF=6e661333a90c6757943227ecf14acc8bae72107f
+ARG GIT_REF=d2ca664c6162872b82aed9024d33dee00c9ae841
 ARG GIT_REPO=https://github.com/opsone/sensu-plugins-backup.git
 
 WORKDIR /assets/build/
