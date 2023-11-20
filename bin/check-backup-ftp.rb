@@ -34,9 +34,9 @@ class CheckBackupFtp < Sensu::Plugin::Check::CLI
 
   def run
     ftp = Net::FTP.new(config[:ftp_host])
+    ftp.use_pasv_ip = true
     ftp.login(config[:ftp_user], config[:ftp_password]) if config[:ftp_user] && config[:ftp_password]
     ftp.chdir(config[:ftp_directory]) if config[:ftp_directory]
-    ftp.binary = true
 
     Dir.glob("#{config[:directory_name]}/*") do |file|
       next if File.extname(file) == '.md5' || File.directory?(file)
