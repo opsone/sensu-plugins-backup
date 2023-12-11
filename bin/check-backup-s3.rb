@@ -38,7 +38,7 @@ class CheckBackupS3 < Sensu::Plugin::Check::CLI
   option :directory_name,
          short: '-d DIR_NAME',
          long: '--directory-name',
-         description: 'The name of directory to check',
+         description: 'The name of directory to check (defaults to /var/archives)',
          default: '/var/archives'
 
   def s3_config

@@ -28,7 +28,7 @@ class CheckBackupFtp < Sensu::Plugin::Check::CLI
 
   option :directory_name,
          short: '-d DIR_NAME',
-         long: '--directory-name DIR_NAME',
+         long: '--directory-name DIR_NAME (defaults to /var/archives)',
          description: 'The name of directory to check',
          default: '/var/archives'
 
