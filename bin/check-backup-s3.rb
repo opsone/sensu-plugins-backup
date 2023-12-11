@@ -54,7 +54,7 @@ class CheckBackupS3 < Sensu::Plugin::Check::CLI
     s3 = Aws::S3::Client.new(s3_config)
 
     Dir.glob("#{config[:directory_name]}/*") do |file|
-      next if File.extname(file) == '.md5'
+      next if File.extname(file) == '.md5' || File.directory?(file)
 
       file_name = File.basename(file)
       file_size = File.size(file)
