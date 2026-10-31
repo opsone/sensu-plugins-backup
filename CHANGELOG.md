@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-10-31
 
 ### Changed
 - Rewritten in Go with the Sensu plugin SDK: static binaries for `linux/amd64` and `linux/arm64`, no Ruby runtime asset.
