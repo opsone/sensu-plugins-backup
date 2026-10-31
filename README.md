@@ -35,8 +35,8 @@ check-backup-s3 [flags]
   -d, --directory-name string   Local directory holding the archives (default "/var/archives")
   -e, --s3-endpoint string      S3 endpoint URL, e.g. https://s3.fr-par.scw.cloud, https://s3.gra.io.cloud.ovh.net (required)
   -r, --s3-region string        S3 region, e.g. fr-par (Scaleway), gra (OVH) (required)
-  -a, --s3-access-key string    S3 access key (default: AWS_ACCESS_KEY, then AWS_ACCESS_KEY_ID or ~/.aws/credentials)
-  -k, --s3-secret-key string    S3 secret key (default: AWS_SECRET_KEY, then AWS_SECRET_ACCESS_KEY or ~/.aws/credentials)
+  -a, --s3-access-key string    S3 access key (fallback: AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY, ~/.aws/credentials)
+  -k, --s3-secret-key string    S3 secret key (fallback: AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, ~/.aws/credentials)
       --timeout int             Timeout of the whole verification in seconds (default 60)
 
 check-backup-ftp [flags]
@@ -58,14 +58,14 @@ Every option can also be set with an environment variable, which keeps secrets o
 
 | Option | Variable |
 |---|---|
-| `--s3-access-key` / `--s3-secret-key` | `AWS_ACCESS_KEY` / `AWS_SECRET_KEY` |
+| `--s3-access-key` / `--s3-secret-key` | `CHECK_BACKUP_S3_ACCESS_KEY` / `CHECK_BACKUP_S3_SECRET_KEY` |
 | `--s3-region` / `--s3-endpoint` / `--bucket-name` | `CHECK_BACKUP_S3_REGION` / `CHECK_BACKUP_S3_ENDPOINT` / `CHECK_BACKUP_S3_BUCKET` |
 | `--ftp-host` / `--ftp-user` / `--ftp-password` / `--ftp-directory` | `CHECK_BACKUP_FTP_HOST` / `CHECK_BACKUP_FTP_USER` / `CHECK_BACKUP_FTP_PASSWORD` / `CHECK_BACKUP_FTP_DIRECTORY` |
 | `--directory-name` / `--timeout` | `CHECK_BACKUP_DIRECTORY` / `CHECK_BACKUP_TIMEOUT` |
 | `--env-file` / `--restic-binary` | `CHECK_BACKUP_RESTIC_ENV_FILE` / `CHECK_BACKUP_RESTIC_BINARY` |
 | `--read-data` / `--read-data-subset` | `CHECK_BACKUP_RESTIC_READ_DATA` / `CHECK_BACKUP_RESTIC_READ_DATA_SUBSET` |
 
-Without S3 keys, `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` then `~/.aws/credentials` are used. Requests use path-style addressing (`https://<endpoint>/<bucket>/<key>`), supported by Scaleway and OVH Object Storage.
+Without S3 keys, the standard AWS sources are used: `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (or `AWS_ACCESS_KEY`/`AWS_SECRET_KEY`), then `~/.aws/credentials`. Requests use path-style addressing (`https://<endpoint>/<bucket>/<key>`), supported by Scaleway and OVH Object Storage.
 
 The FTP check uses passive mode (`PASV`) with the address announced by the server.
 
@@ -101,7 +101,7 @@ spec:
     - backup-s3
 ```
 
-Credentials are best passed through environment variables (`AWS_ACCESS_KEY`/`AWS_SECRET_KEY`, `CHECK_BACKUP_FTP_PASSWORD`), e.g. with the check `env_vars` or Sensu `secrets`, rather than on the command line.
+Credentials are best passed through environment variables (`CHECK_BACKUP_S3_ACCESS_KEY`/`CHECK_BACKUP_S3_SECRET_KEY`, `CHECK_BACKUP_FTP_PASSWORD`), e.g. with the check `env_vars` or Sensu `secrets`, rather than on the command line.
 
 Per-host arguments are set as an entity annotation, e.g. in the agent configuration:
 

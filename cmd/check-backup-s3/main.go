@@ -39,19 +39,19 @@ var (
 	options = []sensu.ConfigOption{
 		&sensu.PluginConfigOption[string]{
 			Path:      "s3-access-key",
-			Env:       "AWS_ACCESS_KEY",
+			Env:       "CHECK_BACKUP_S3_ACCESS_KEY",
 			Argument:  "s3-access-key",
 			Shorthand: "a",
-			Usage:     "S3 access key (default: AWS_ACCESS_KEY, then AWS_ACCESS_KEY_ID or ~/.aws/credentials)",
+			Usage:     "S3 access key (fallback: AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY, ~/.aws/credentials)",
 			Value:     &plugin.AccessKey,
 		},
 		&sensu.PluginConfigOption[string]{
 			Path:      "s3-secret-key",
-			Env:       "AWS_SECRET_KEY",
+			Env:       "CHECK_BACKUP_S3_SECRET_KEY",
 			Argument:  "s3-secret-key",
 			Shorthand: "k",
 			Secret:    true,
-			Usage:     "S3 secret key (default: AWS_SECRET_KEY, then AWS_SECRET_ACCESS_KEY or ~/.aws/credentials)",
+			Usage:     "S3 secret key (fallback: AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, ~/.aws/credentials)",
 			Value:     &plugin.SecretKey,
 		},
 		&sensu.PluginConfigOption[string]{
@@ -184,7 +184,7 @@ func parseEndpoint(endpoint string) (host string, secure bool, err error) {
 }
 
 // credentialsFor uses the given keys, or falls back to AWS_ACCESS_KEY_ID /
-// AWS_SECRET_ACCESS_KEY then ~/.aws/credentials. No instance role lookup: the
+// AWS_SECRET_ACCESS_KEY (or AWS_ACCESS_KEY / AWS_SECRET_KEY) then ~/.aws/credentials. No instance role lookup: the
 // AWS metadata endpoint is useless on Scaleway or OVH.
 func credentialsFor(accessKey, secretKey string) *credentials.Credentials {
 	if accessKey != "" || secretKey != "" {

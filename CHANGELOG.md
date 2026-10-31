@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.1] - 2026-10-31
+
+### Changed
+- `check-backup-s3`: `--s3-access-key` / `--s3-secret-key` are read from `CHECK_BACKUP_S3_ACCESS_KEY` / `CHECK_BACKUP_S3_SECRET_KEY`, following the `CHECK_BACKUP_*` convention. `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, `AWS_ACCESS_KEY` / `AWS_SECRET_KEY` and `~/.aws/credentials` still work as fallback.
+
 ## [0.2.0] - 2026-10-31
 
 ### Changed
