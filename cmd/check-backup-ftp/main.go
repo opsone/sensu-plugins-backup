@@ -74,8 +74,7 @@ var (
 			Env:       "CHECK_BACKUP_DIRECTORY",
 			Argument:  "directory-name",
 			Shorthand: "d",
-			Default:   "/var/archives",
-			Usage:     "Local directory holding the archives",
+			Usage:     "Local directory holding the archives, e.g. /var/archives (required)",
 			Value:     &plugin.Directory,
 		},
 		&sensu.PluginConfigOption[int]{
@@ -97,6 +96,9 @@ func main() {
 func checkArgs(event *corev2.Event) (int, error) {
 	if plugin.Host == "" {
 		return sensu.CheckStateUnknown, fmt.Errorf("--ftp-host is required")
+	}
+	if plugin.Directory == "" {
+		return sensu.CheckStateUnknown, fmt.Errorf("--directory-name is required")
 	}
 	if plugin.Timeout <= 0 {
 		return sensu.CheckStateUnknown, fmt.Errorf("--timeout must be greater than 0")

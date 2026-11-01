@@ -57,8 +57,9 @@ expect() {
   fi
 }
 
-s3args=(check-backup-s3 -e "http://$s3host:9000" -r us-east-1 -a sensu -k sensu-secret -b backups)
+s3args=(check-backup-s3 -e "http://$s3host:9000" -r us-east-1 -a sensu -k sensu-secret -b backups -d /var/archives)
 expect 3 "s3 without bucket" check-backup-s3
+expect 3 "s3 without local directory" "${s3args[@]}" -d ""
 expect 2 "s3 empty bucket" "${s3args[@]}"
 s3 "-T /var/archives/db.sql.gz http://$s3host:9000/backups/db.sql.gz"
 expect 2 "s3 one file missing" "${s3args[@]}"
@@ -69,8 +70,9 @@ expect 0 "s3 all present" "${s3args[@]}"
 expect 2 "s3 wrong secret" "${s3args[@]}" -k wrong
 expect 2 "s3 unknown bucket" "${s3args[@]}" -b nope
 
-ftpargs=(check-backup-ftp -H 127.0.0.1:2121 -u sensu -p sensu-secret -D backups)
+ftpargs=(check-backup-ftp -H 127.0.0.1:2121 -u sensu -p sensu-secret -D backups -d /var/archives)
 expect 3 "ftp without host" check-backup-ftp
+expect 3 "ftp without local directory" "${ftpargs[@]}" -d ""
 expect 2 "ftp empty directory" "${ftpargs[@]}"
 run 'cp /var/archives/db.sql.gz /srv/ftp/backups/ && head -c 10 /dev/urandom > /srv/ftp/backups/files.tar.gz'
 expect 2 "ftp size mismatch" "${ftpargs[@]}"
@@ -78,7 +80,7 @@ run 'cp /var/archives/files.tar.gz /srv/ftp/backups/'
 expect 0 "ftp all present" "${ftpargs[@]}"
 expect 2 "ftp wrong password" "${ftpargs[@]}" -p wrong
 expect 2 "ftp unknown directory" "${ftpargs[@]}" -D nope
-expect 2 "ftp unreachable" check-backup-ftp -H 127.0.0.1:1
+expect 2 "ftp unreachable" check-backup-ftp -H 127.0.0.1:1 -d /var/archives
 
 expect 2 "restic missing env file" check-backup-restic -e /nope
 expect 3 "restic invalid subset" check-backup-restic --read-data-subset 10

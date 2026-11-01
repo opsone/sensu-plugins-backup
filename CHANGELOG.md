@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.0] - Unreleased
+
+### Changed
+- `check-backup-s3` / `check-backup-ftp`: `--directory-name` (`CHECK_BACKUP_DIRECTORY`) is required, no more `/var/archives` default in the plugin. Set the default in the check definition, e.g. `CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "/var/archives" }}`.
+
 ## [0.2.1] - 2026-10-31
 
 ### Changed

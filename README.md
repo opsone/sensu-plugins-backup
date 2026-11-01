@@ -2,7 +2,7 @@
 
 Sensu Go checks verifying backups:
 
-- `check-backup-s3`: every file of a local directory (default `/var/archives`) is present in an S3 bucket with the same size;
+- `check-backup-s3`: every file of a local directory (e.g. `/var/archives`) is present in an S3 bucket with the same size;
 - `check-backup-ftp`: same thing on an FTP server;
 - `check-backup-restic`: integrity of a restic repository (`restic check`).
 
@@ -32,7 +32,7 @@ Static Go binaries (no CGO, no Ruby runtime): one asset for every Linux distribu
 ```
 check-backup-s3 [flags]
   -b, --bucket-name string      S3 bucket holding the archives (required)
-  -d, --directory-name string   Local directory holding the archives (default "/var/archives")
+  -d, --directory-name string   Local directory holding the archives, e.g. /var/archives (required)
   -e, --s3-endpoint string      S3 endpoint URL, e.g. https://s3.fr-par.scw.cloud, https://s3.gra.io.cloud.ovh.net (required)
   -r, --s3-region string        S3 region, e.g. fr-par (Scaleway), gra (OVH) (required)
   -a, --s3-access-key string    S3 access key (fallback: AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY, ~/.aws/credentials)
@@ -44,7 +44,7 @@ check-backup-ftp [flags]
   -u, --ftp-user string         FTP user (default: anonymous)
   -p, --ftp-password string     FTP password
   -D, --ftp-directory string    Remote directory holding the archives (default: login directory)
-  -d, --directory-name string   Local directory holding the archives (default "/var/archives")
+  -d, --directory-name string   Local directory holding the archives, e.g. /var/archives (required)
       --timeout int             Timeout of the whole verification in seconds (default 60)
 
 check-backup-restic [flags]
@@ -74,9 +74,9 @@ The restic env file is a dotenv file (`export` prefixes allowed); its variables 
 Examples:
 
 ```sh
-check-backup-s3 -b my-backups -e https://s3.fr-par.scw.cloud -r fr-par          # Scaleway
-check-backup-s3 -b my-backups -e https://s3.gra.io.cloud.ovh.net -r gra          # OVH
-check-backup-ftp -H ftp.example.com -u backup -D /backups   # password in CHECK_BACKUP_FTP_PASSWORD
+check-backup-s3 -d /var/archives -b my-backups -e https://s3.fr-par.scw.cloud -r fr-par    # Scaleway
+check-backup-s3 -d /var/archives -b my-backups -e https://s3.gra.io.cloud.ovh.net -r gra    # OVH
+check-backup-ftp -d /var/archives -H ftp.example.com -u backup -D /backups   # password in CHECK_BACKUP_FTP_PASSWORD
 check-backup-restic --read-data-subset 1/7
 ```
 
@@ -102,7 +102,7 @@ annotations:
   backup_ftp_user: backup
   backup_ftp_password: secret
   backup_ftp_remote_dir: /backups                     # optional
-  # S3 and FTP, optional (default /var/archives)
+  # S3 and FTP, optional (check definition default: /var/archives)
   backup_directory: /var/archives
   # restic, optional
   backup_restic_env_file: /etc/restic/env             # default /etc/restic/env
@@ -125,7 +125,7 @@ spec:
     - CHECK_BACKUP_S3_REGION={{ .annotations.backup_s3_region }}
     - CHECK_BACKUP_S3_ACCESS_KEY={{ .annotations.backup_s3_access_key }}
     - CHECK_BACKUP_S3_SECRET_KEY={{ .annotations.backup_s3_secret_key }}
-    - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "" }}
+    - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "/var/archives" }}
   runtime_assets:
     - opsone/sensu-plugins-backup
   interval: 3600
@@ -150,7 +150,7 @@ spec:
     - CHECK_BACKUP_FTP_USER={{ .annotations.backup_ftp_user }}
     - CHECK_BACKUP_FTP_PASSWORD={{ .annotations.backup_ftp_password }}
     - CHECK_BACKUP_FTP_DIRECTORY={{ .annotations.backup_ftp_remote_dir | default "" }}
-    - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "" }}
+    - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "/var/archives" }}
   runtime_assets:
     - opsone/sensu-plugins-backup
   interval: 3600
@@ -209,6 +209,7 @@ Entity annotations are visible in the Sensu dashboard and API: to keep credentia
 - Commands lose their `.rb` suffix: `check-backup-s3.rb` → `check-backup-s3`, etc.
 - `check-backup-ftp`: the host shorthand is now `-H` (`-h` is `--help`).
 - `check-backup-s3`: `--s3-endpoint` and `--s3-region` are required (they defaulted to AWS `eu-west-3`).
+- `check-backup-s3` / `check-backup-ftp`: `--directory-name` is required (it defaulted to `/var/archives`); the default now lives in the check definition.
 - The checks report all failing files instead of stopping at the first one.
 - The asset no longer depends on the Ruby runtime asset, nor on the Debian release.
 

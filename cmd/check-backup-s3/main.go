@@ -83,8 +83,7 @@ var (
 			Env:       "CHECK_BACKUP_DIRECTORY",
 			Argument:  "directory-name",
 			Shorthand: "d",
-			Default:   "/var/archives",
-			Usage:     "Local directory holding the archives",
+			Usage:     "Local directory holding the archives, e.g. /var/archives (required)",
 			Value:     &plugin.Directory,
 		},
 		&sensu.PluginConfigOption[int]{
@@ -108,6 +107,7 @@ func checkArgs(event *corev2.Event) (int, error) {
 		{"--bucket-name", plugin.Bucket},
 		{"--s3-endpoint", plugin.Endpoint},
 		{"--s3-region", plugin.Region},
+		{"--directory-name", plugin.Directory},
 	}
 	for _, r := range required {
 		if r.value == "" {
