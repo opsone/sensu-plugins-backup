@@ -84,6 +84,8 @@ check-backup-restic --read-data-subset 1/7
 
 Every option is passed through `env_vars`, filled per host from entity annotations with token substitution (applied by the agent to the whole check definition, `env_vars` included). This keeps credentials out of the process list, and one annotation maps to one option.
 
+Naming rule: an annotation is named after its environment variable, lowercased, without the `CHECK_` prefix (`CHECK_BACKUP_FTP_HOST` → `backup_ftp_host`).
+
 - Optional options use `| default ""`: an empty variable is ignored and the option keeps its default value.
 - Required options have no `default`: on a host missing the annotation, the agent does not run the check and reports an `unmatched token` error event instead.
 
@@ -98,10 +100,10 @@ annotations:
   backup_s3_access_key: SCWXXXXXXXXXXXXXXXXX
   backup_s3_secret_key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   # FTP
-  backup_ftp_hostname: ftp.example.com                # optional port: ftp.example.com:2121
+  backup_ftp_host: ftp.example.com                    # optional port: ftp.example.com:2121
   backup_ftp_user: backup
   backup_ftp_password: secret
-  backup_ftp_remote_dir: /backups                     # optional
+  backup_ftp_directory: /backups                      # optional
   # S3 and FTP, optional (check definition default: /var/archives)
   backup_directory: /var/archives
   # restic, optional
@@ -146,10 +148,10 @@ metadata:
 spec:
   command: check-backup-ftp
   env_vars:
-    - CHECK_BACKUP_FTP_HOST={{ .annotations.backup_ftp_hostname }}
+    - CHECK_BACKUP_FTP_HOST={{ .annotations.backup_ftp_host }}
     - CHECK_BACKUP_FTP_USER={{ .annotations.backup_ftp_user }}
     - CHECK_BACKUP_FTP_PASSWORD={{ .annotations.backup_ftp_password }}
-    - CHECK_BACKUP_FTP_DIRECTORY={{ .annotations.backup_ftp_remote_dir | default "" }}
+    - CHECK_BACKUP_FTP_DIRECTORY={{ .annotations.backup_ftp_directory | default "" }}
     - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "/var/archives" }}
   runtime_assets:
     - opsone/sensu-plugins-backup
