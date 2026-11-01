@@ -80,7 +80,36 @@ check-backup-ftp -H ftp.example.com -u backup -D /backups   # password in CHECK_
 check-backup-restic --read-data-subset 1/7
 ```
 
-## Check definition
+## Check definitions
+
+Every option is passed through `env_vars`, filled per host from entity annotations with token substitution (applied by the agent to the whole check definition, `env_vars` included). This keeps credentials out of the process list, and one annotation maps to one option.
+
+- Optional options use `| default ""`: an empty variable is ignored and the option keeps its default value.
+- Required options have no `default`: on a host missing the annotation, the agent does not run the check and reports an `unmatched token` error event instead.
+
+Annotations, e.g. in the agent configuration (`/etc/sensu/agent.yml`):
+
+```yaml
+annotations:
+  # S3
+  backup_s3_bucket: my-backups
+  backup_s3_endpoint: https://s3.fr-par.scw.cloud     # OVH: https://s3.gra.io.cloud.ovh.net
+  backup_s3_region: fr-par                            # OVH: gra
+  backup_s3_access_key: SCWXXXXXXXXXXXXXXXXX
+  backup_s3_secret_key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  # FTP
+  backup_ftp_hostname: ftp.example.com                # optional port: ftp.example.com:2121
+  backup_ftp_user: backup
+  backup_ftp_password: secret
+  backup_ftp_remote_dir: /backups                     # optional
+  # S3 and FTP, optional (default /var/archives)
+  backup_directory: /var/archives
+  # restic, optional
+  backup_restic_env_file: /etc/restic/env             # default /etc/restic/env
+  backup_restic_read_data_subset: 1/7                 # weekly check, default 1/7
+```
+
+### S3
 
 ```yaml
 ---
@@ -89,9 +118,14 @@ api_version: core/v2
 metadata:
   name: check-backup-s3
 spec:
-  command: >-
-    check-backup-s3
-    {{ .annotations.check_backup_s3_args | default "" }}
+  command: check-backup-s3
+  env_vars:
+    - CHECK_BACKUP_S3_BUCKET={{ .annotations.backup_s3_bucket }}
+    - CHECK_BACKUP_S3_ENDPOINT={{ .annotations.backup_s3_endpoint }}
+    - CHECK_BACKUP_S3_REGION={{ .annotations.backup_s3_region }}
+    - CHECK_BACKUP_S3_ACCESS_KEY={{ .annotations.backup_s3_access_key }}
+    - CHECK_BACKUP_S3_SECRET_KEY={{ .annotations.backup_s3_secret_key }}
+    - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "" }}
   runtime_assets:
     - opsone/sensu-plugins-backup
   interval: 3600
@@ -101,16 +135,74 @@ spec:
     - backup-s3
 ```
 
-Credentials are best passed through environment variables (`CHECK_BACKUP_S3_ACCESS_KEY`/`CHECK_BACKUP_S3_SECRET_KEY`, `CHECK_BACKUP_FTP_PASSWORD`), e.g. with the check `env_vars` or Sensu `secrets`, rather than on the command line.
-
-Per-host arguments are set as an entity annotation, e.g. in the agent configuration:
+### FTP
 
 ```yaml
-annotations:
-  check_backup_s3_args: "-b my-backups -e https://s3.fr-par.scw.cloud -r fr-par"
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: check-backup-ftp
+spec:
+  command: check-backup-ftp
+  env_vars:
+    - CHECK_BACKUP_FTP_HOST={{ .annotations.backup_ftp_hostname }}
+    - CHECK_BACKUP_FTP_USER={{ .annotations.backup_ftp_user }}
+    - CHECK_BACKUP_FTP_PASSWORD={{ .annotations.backup_ftp_password }}
+    - CHECK_BACKUP_FTP_DIRECTORY={{ .annotations.backup_ftp_remote_dir | default "" }}
+    - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "" }}
+  runtime_assets:
+    - opsone/sensu-plugins-backup
+  interval: 3600
+  timeout: 120
+  publish: true
+  subscriptions:
+    - backup-ftp
 ```
 
-`check-backup-restic --read-data` reads the whole repository: schedule it at a low frequency (daily or weekly) with a matching `timeout`.
+### restic
+
+Two checks: a quick one (repository structure, a few seconds) and a weekly one reading a subset of the data. `--read-data` (`CHECK_BACKUP_RESTIC_READ_DATA=true`) reads the whole repository: keep it for small repositories, with a matching `timeout`.
+
+```yaml
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: check-backup-restic
+spec:
+  command: check-backup-restic
+  env_vars:
+    - CHECK_BACKUP_RESTIC_ENV_FILE={{ .annotations.backup_restic_env_file | default "" }}
+  runtime_assets:
+    - opsone/sensu-plugins-backup
+  interval: 86400
+  timeout: 600
+  publish: true
+  subscriptions:
+    - backup-restic
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: check-backup-restic-data
+spec:
+  command: check-backup-restic
+  env_vars:
+    - CHECK_BACKUP_RESTIC_ENV_FILE={{ .annotations.backup_restic_env_file | default "" }}
+    - CHECK_BACKUP_RESTIC_READ_DATA_SUBSET={{ .annotations.backup_restic_read_data_subset | default "1/7" }}
+  runtime_assets:
+    - opsone/sensu-plugins-backup
+  cron: "0 4 * * 0"
+  timeout: 7200
+  publish: true
+  subscriptions:
+    - backup-restic
+```
+
+The `restic` binary must be installed on the host (or given with `CHECK_BACKUP_RESTIC_BINARY`), and the env file readable by the `sensu` user.
+
+Entity annotations are visible in the Sensu dashboard and API: to keep credentials out of them, use Sensu [secrets](https://docs.sensu.io/sensu-go/latest/operations/manage-secrets/secrets/) instead of `env_vars` for the keys and passwords.
 
 ## Migrating from the Ruby version (≤ 0.1.5)
 
