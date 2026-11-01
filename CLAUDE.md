@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Sensu Go checks verifying backups, written in Go with `github.com/sensu/sensu-plugin-sdk`. Published as a Sensu asset (static binaries, `linux/amd64` and `linux/arm64`). Same layout and tooling as `opsone/sensu-plugins-systemd`.
+Sensu Go checks verifying backups, written in Go with `github.com/sensu/sensu-plugin-sdk`. Published as a Sensu asset (static binaries, `linux/amd64` only, see `ARCHS` in the Makefile). Same layout and tooling as `opsone/sensu-plugins-systemd`.
 
 ## Common Commands
 

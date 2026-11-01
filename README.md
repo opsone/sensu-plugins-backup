@@ -6,7 +6,7 @@ Sensu Go checks verifying backups:
 - `check-backup-ftp`: same thing on an FTP server;
 - `check-backup-restic`: integrity of a restic repository (`restic check`).
 
-Static Go binaries (no CGO, no Ruby runtime): one asset for every Linux distribution, `amd64` and `arm64`.
+Static Go binaries (no CGO, no Ruby runtime): one asset for every Linux distribution, `amd64` only.
 
 ## Behavior
 
@@ -232,7 +232,7 @@ sensuctl create -f dist/opsone-sensu-plugins-backup_0.2.0.yml
 
 `make release` runs `make dist`, which runs the tests then produces in `dist/`:
 
-- one archive per architecture (`linux/amd64`, `linux/arm64`) in Sensu asset layout (`bin/check-backup-*`);
+- one archive per architecture listed in `ARCHS` (`linux/amd64`) in Sensu asset layout (`bin/check-backup-*`);
 - the sha512 checksums file;
 - `opsone-sensu-plugins-backup_<version>.yml`, the asset definition pointing to the GitHub release of the tag.
 

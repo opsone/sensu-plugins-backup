@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Removed
+- `linux/arm64` build: the asset only ships `linux/amd64`.
+
 ## [0.3.0] - 2026-11-01
 
 ### Changed
