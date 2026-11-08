@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.0] - 2026-11-08
 
 ### Added
 - Backup age check, on by default in `check-backup-s3`, `check-backup-ftp` and `check-backup-restic`: the newest backup of each set must be younger than `--max-age` hours (`CHECK_BACKUP_MAX_AGE`, default 26, `0` disables it). Catches backups that silently stop, completely or for one target only, while the existing checks stay OK.
