@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- README: check definitions give explicit defaults (`26`, `.`, `/etc/restic/env`) instead of `| default ""`. Sensu rejects an empty environment variable, and the agent silently drops the check on a host missing the annotation.
+
 ## [0.4.0] - 2026-11-08
 
 ### Added
