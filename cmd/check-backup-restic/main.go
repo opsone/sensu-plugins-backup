@@ -43,8 +43,7 @@ var (
 			Env:       "CHECK_BACKUP_RESTIC_ENV_FILE",
 			Argument:  "env-file",
 			Shorthand: "e",
-			Default:   "/etc/restic/env",
-			Usage:     "Environment file defining the restic repository and credentials",
+			Usage:     "Environment file defining the restic repository and credentials (required)",
 			Value:     &plugin.EnvFile,
 		},
 		&sensu.PluginConfigOption[string]{
@@ -80,6 +79,9 @@ func main() {
 }
 
 func checkArgs(event *corev2.Event) (int, error) {
+	if plugin.EnvFile == "" {
+		return sensu.CheckStateUnknown, fmt.Errorf("--env-file is required")
+	}
 	if _, err := resticArgs(plugin.ReadData, plugin.ReadDataSubset); err != nil {
 		return sensu.CheckStateUnknown, err
 	}

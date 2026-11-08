@@ -91,20 +91,23 @@ expect 2 "ftp stale archive" "${ftpargs[@]}"
 expect 0 "s3 larger max-age" "${s3args[@]}" --max-age 48
 expect 0 "ftp age check disabled" "${ftpargs[@]}" --max-age 0
 
+resticargs=(check-backup-restic -e /etc/restic/env)
+
+expect 3 "restic env file required" check-backup-restic
 expect 2 "restic missing env file" check-backup-restic -e /nope
-expect 3 "restic invalid subset" check-backup-restic --read-data-subset 10
-expect 3 "restic exclusive options" check-backup-restic --read-data --read-data-subset 1/2
-expect 0 "restic quick" check-backup-restic
-expect 0 "restic subset" check-backup-restic --read-data-subset 50%
-expect 0 "restic full" check-backup-restic --read-data
+expect 3 "restic invalid subset" "${resticargs[@]}" --read-data-subset 10
+expect 3 "restic exclusive options" "${resticargs[@]}" --read-data --read-data-subset 1/2
+expect 0 "restic quick" "${resticargs[@]}"
+expect 0 "restic subset" "${resticargs[@]}" --read-data-subset 50%
+expect 0 "restic full" "${resticargs[@]}" --read-data
 run 'export RESTIC_REPOSITORY=/srv/restic RESTIC_PASSWORD=sensu-secret RESTIC_CACHE_DIR=/tmp/restic-cache &&
      restic backup -q --time "$(date -d "-30 hours" "+%F %T")" /etc/restic && chmod -R a+rwX /srv/restic'
-expect 2 "restic stale snapshot group" check-backup-restic
-expect 0 "restic larger max-age" check-backup-restic --max-age 48
-expect 0 "restic age check disabled" check-backup-restic --max-age 0
+expect 2 "restic stale snapshot group" "${resticargs[@]}"
+expect 0 "restic larger max-age" "${resticargs[@]}" --max-age 48
+expect 0 "restic age check disabled" "${resticargs[@]}" --max-age 0
 run 'f=$(find /srv/restic/data -type f | head -1) && chmod u+w "$f" && printf corrupt | dd of="$f" bs=1 seek=50 conv=notrunc status=none'
-expect 2 "restic full on corrupted repo" check-backup-restic --read-data
+expect 2 "restic full on corrupted repo" "${resticargs[@]}" --read-data
 run 'sed -i s/sensu-secret/wrong/ /etc/restic/env'
-expect 2 "restic wrong password" check-backup-restic
+expect 2 "restic wrong password" "${resticargs[@]}"
 
 exit $failures

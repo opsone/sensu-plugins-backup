@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+- `check-backup-restic`: `--env-file` (`CHECK_BACKUP_RESTIC_ENV_FILE`) is required, like the other host-specific paths; the `/etc/restic/env` default now lives in the check definition. Breaking for command-line calls without `-e`, not for the documented check definitions.
+- Integration test image pinned to `debian:13.7-slim`.
+
 ### Fixed
 - README: check definitions give explicit defaults (`26`, `.`, `/etc/restic/env`) instead of `| default ""`. Sensu rejects an empty environment variable, and the agent silently drops the check on a host missing the annotation.
 

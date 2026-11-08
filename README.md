@@ -70,7 +70,7 @@ check-backup-ftp [flags]
       --max-age int             Maximum age in hours of the newest backup of each set, 0 disables the age check (default 26)
 
 check-backup-restic [flags]
-  -e, --env-file string           Environment file defining the restic repository and credentials (default "/etc/restic/env")
+  -e, --env-file string           Environment file defining the restic repository and credentials (required)
   -b, --restic-binary string      Path to the restic binary (default "restic")
       --read-data                 Read all data blobs (thorough but slow, use at low frequency)
       --read-data-subset string   Read a subset of data blobs: "n/t" (e.g. "1/7") or "x%" (e.g. "10%")
@@ -100,7 +100,7 @@ Examples:
 check-backup-s3 -d /var/archives -b my-backups -e https://s3.fr-par.scw.cloud -r fr-par    # Scaleway
 check-backup-s3 -d /var/archives -b my-backups -e https://s3.gra.io.cloud.ovh.net -r gra    # OVH
 check-backup-ftp -d /var/archives -H ftp.example.com -u backup -D /backups   # password in CHECK_BACKUP_FTP_PASSWORD
-check-backup-restic --read-data-subset 1/7
+check-backup-restic -e /etc/restic/env --read-data-subset 1/7
 ```
 
 ## Check definitions
@@ -132,7 +132,7 @@ annotations:
   # every check, optional
   backup_max_age: 170                                 # hours, e.g. weekly backups; default 26, 0 disables
   # restic, optional
-  backup_restic_env_file: /etc/restic/env             # default /etc/restic/env
+  backup_restic_env_file: /etc/restic/env             # check definition default: /etc/restic/env
   backup_restic_read_data_subset: 1/7                 # weekly check, default 1/7
 ```
 
@@ -241,6 +241,7 @@ Entity annotations are visible in the Sensu dashboard and API: to keep credentia
 - `check-backup-ftp`: the host shorthand is now `-H` (`-h` is `--help`).
 - `check-backup-s3`: `--s3-endpoint` and `--s3-region` are required (they defaulted to AWS `eu-west-3`).
 - `check-backup-s3` / `check-backup-ftp`: `--directory-name` is required (it defaulted to `/var/archives`); the default now lives in the check definition.
+- `check-backup-restic`: `--env-file` is required (it defaulted to `/etc/restic/env`); the default now lives in the check definition.
 - The checks report all failing files instead of stopping at the first one.
 - The asset no longer depends on the Ruby runtime asset, nor on the Debian release.
 
