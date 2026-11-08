@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.5.0] - 2026-11-08
 
 ### Changed
 - `check-backup-restic`: `--env-file` (`CHECK_BACKUP_RESTIC_ENV_FILE`) is required, like the other host-specific paths; the `/etc/restic/env` default now lives in the check definition. Breaking for command-line calls without `-e`, not for the documented check definitions.
