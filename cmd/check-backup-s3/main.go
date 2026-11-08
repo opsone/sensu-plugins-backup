@@ -25,13 +25,14 @@ type Config struct {
 	Bucket    string
 	Directory string
 	Timeout   int
+	MaxAge    int
 }
 
 var (
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
 			Name:     "check-backup-s3",
-			Short:    "Check that local archives are present in an S3 bucket with the same size",
+			Short:    "Check that local archives are present in an S3 bucket with the same size, and recent",
 			Keyspace: "sensu.io/plugins/check-backup-s3/config",
 		},
 	}
@@ -94,6 +95,7 @@ var (
 			Usage:    "Timeout of the whole verification in seconds",
 			Value:    &plugin.Timeout,
 		},
+		backup.MaxAgeOption(&plugin.MaxAge),
 	}
 )
 
@@ -116,6 +118,9 @@ func checkArgs(event *corev2.Event) (int, error) {
 	}
 	if plugin.Timeout <= 0 {
 		return sensu.CheckStateUnknown, fmt.Errorf("--timeout must be greater than 0")
+	}
+	if err := backup.ValidateMaxAge(plugin.MaxAge); err != nil {
+		return sensu.CheckStateUnknown, err
 	}
 	if _, _, err := parseEndpoint(plugin.Endpoint); err != nil {
 		return sensu.CheckStateUnknown, err
@@ -143,6 +148,7 @@ func executeCheck(event *corev2.Event) (int, error) {
 	defer cancel()
 
 	result := backup.Verify(ctx, files, s3Remote{client, plugin.Bucket}, "S3 bucket "+plugin.Bucket)
+	result = backup.WithArchiveAge(result, files, plugin.Directory, plugin.MaxAge)
 	backup.Print(plugin.Name, result)
 	return result.State, nil
 }

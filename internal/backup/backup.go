@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/sensu/sensu-plugin-sdk/sensu"
 )
@@ -19,8 +20,9 @@ var ErrNotFound = errors.New("not found")
 
 // File is a local archive to look for on the remote.
 type File struct {
-	Name string
-	Size int64
+	Name    string
+	Size    int64
+	ModTime time.Time
 }
 
 // Remote returns the size of a file stored remotely, or ErrNotFound.
@@ -54,7 +56,7 @@ func LocalFiles(dir string) ([]File, error) {
 		if info.IsDir() {
 			continue
 		}
-		files = append(files, File{e.Name(), info.Size()})
+		files = append(files, File{e.Name(), info.Size(), info.ModTime()})
 	}
 	return files, nil
 }

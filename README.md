@@ -6,6 +6,8 @@ Sensu Go checks verifying backups:
 - `check-backup-ftp`: same thing on an FTP server;
 - `check-backup-restic`: integrity of a restic repository (`restic check`).
 
+Each one also checks that the backups are recent, to catch backups that silently stop (see [Backup age](#backup-age)).
+
 Static Go binaries (no CGO, no Ruby runtime): one asset for every Linux distribution, `amd64` only.
 
 ## Behavior
@@ -17,7 +19,24 @@ Static Go binaries (no CGO, no Ruby runtime): one asset for every Linux distribu
 | All files present with the same size | OK |
 | File missing on the remote, or size mismatch | CRITICAL |
 | Remote error (connection, authentication, permission, remote directory…) | CRITICAL |
+| A set of archives older than `--max-age`, or no archive at all | CRITICAL |
 | Invalid argument, unreadable local directory | UNKNOWN |
+
+### Backup age
+
+A remote copy or a sound repository says nothing about whether backups still run: backup-manager leaves its old archives in place until their TTL expires, restic keeps its old snapshots. Each check therefore requires the newest backup of every set to be younger than `--max-age` hours (default 26, for daily backups; `0` disables the age check):
+
+- `check-backup-s3` / `check-backup-ftp`: archives of the local directory, grouped by name without their backup-manager date (`host-etc.20261108.tar.gz` and `host-etc.20261107.master.tar.gz` belong to `host-etc.*.tar.gz`), using the modification time of the newest file;
+- `check-backup-restic`: newest snapshot of each host and paths group (`restic snapshots --latest 1 --group-by host,paths`), only checked when `restic check` succeeds.
+
+Grouping catches a single failing target, e.g. a MySQL dump no longer produced while the tarballs are. The age result is appended to the check output:
+
+```
+check-backup-s3 CRITICAL: 3 file(s) present in S3 bucket backups; 1 archive set(s) older than 26h in /var/archives: h-mysql-db.*.sql.gz (last h-mysql-db.20261106.sql.gz, 54h ago)
+check-backup-restic CRITICAL: [QUICK] no errors were found; 1 snapshot group(s) older than 26h in repository: web1:/etc,/var/www (last snapshot 6232c79b, 30h ago)
+```
+
+After removing a backup target, its set stays CRITICAL until its old archives are deleted (or purged by backup-manager), or its snapshots forgotten (`restic forget`).
 
 `check-backup-restic`:
 
@@ -25,6 +44,7 @@ Static Go binaries (no CGO, no Ruby runtime): one asset for every Linux distribu
 |---|---|
 | `restic check` succeeds | OK (last line of the restic output) |
 | `restic check` fails, env file missing or unreadable | CRITICAL |
+| A snapshot group older than `--max-age`, no snapshot at all, `restic snapshots` fails | CRITICAL |
 | Invalid argument, restic binary not found | UNKNOWN |
 
 ## Usage
@@ -38,6 +58,7 @@ check-backup-s3 [flags]
   -a, --s3-access-key string    S3 access key (fallback: AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY, ~/.aws/credentials)
   -k, --s3-secret-key string    S3 secret key (fallback: AWS_SECRET_ACCESS_KEY, AWS_SECRET_KEY, ~/.aws/credentials)
       --timeout int             Timeout of the whole verification in seconds (default 60)
+      --max-age int             Maximum age in hours of the newest backup of each set, 0 disables the age check (default 26)
 
 check-backup-ftp [flags]
   -H, --ftp-host string         FTP host, with an optional port (default 21) (required)
@@ -46,12 +67,14 @@ check-backup-ftp [flags]
   -D, --ftp-directory string    Remote directory holding the archives (default: login directory)
   -d, --directory-name string   Local directory holding the archives, e.g. /var/archives (required)
       --timeout int             Timeout of the whole verification in seconds (default 60)
+      --max-age int             Maximum age in hours of the newest backup of each set, 0 disables the age check (default 26)
 
 check-backup-restic [flags]
   -e, --env-file string           Environment file defining the restic repository and credentials (default "/etc/restic/env")
   -b, --restic-binary string      Path to the restic binary (default "restic")
       --read-data                 Read all data blobs (thorough but slow, use at low frequency)
       --read-data-subset string   Read a subset of data blobs: "n/t" (e.g. "1/7") or "x%" (e.g. "10%")
+      --max-age int               Maximum age in hours of the newest backup of each set, 0 disables the age check (default 26)
 ```
 
 Every option can also be set with an environment variable, which keeps secrets out of the process list:
@@ -61,7 +84,7 @@ Every option can also be set with an environment variable, which keeps secrets o
 | `--s3-access-key` / `--s3-secret-key` | `CHECK_BACKUP_S3_ACCESS_KEY` / `CHECK_BACKUP_S3_SECRET_KEY` |
 | `--s3-region` / `--s3-endpoint` / `--bucket-name` | `CHECK_BACKUP_S3_REGION` / `CHECK_BACKUP_S3_ENDPOINT` / `CHECK_BACKUP_S3_BUCKET` |
 | `--ftp-host` / `--ftp-user` / `--ftp-password` / `--ftp-directory` | `CHECK_BACKUP_FTP_HOST` / `CHECK_BACKUP_FTP_USER` / `CHECK_BACKUP_FTP_PASSWORD` / `CHECK_BACKUP_FTP_DIRECTORY` |
-| `--directory-name` / `--timeout` | `CHECK_BACKUP_DIRECTORY` / `CHECK_BACKUP_TIMEOUT` |
+| `--directory-name` / `--timeout` / `--max-age` | `CHECK_BACKUP_DIRECTORY` / `CHECK_BACKUP_TIMEOUT` / `CHECK_BACKUP_MAX_AGE` |
 | `--env-file` / `--restic-binary` | `CHECK_BACKUP_RESTIC_ENV_FILE` / `CHECK_BACKUP_RESTIC_BINARY` |
 | `--read-data` / `--read-data-subset` | `CHECK_BACKUP_RESTIC_READ_DATA` / `CHECK_BACKUP_RESTIC_READ_DATA_SUBSET` |
 
@@ -106,6 +129,8 @@ annotations:
   backup_ftp_directory: /backups                      # optional
   # S3 and FTP, optional (check definition default: /var/archives)
   backup_directory: /var/archives
+  # every check, optional
+  backup_max_age: 170                                 # hours, e.g. weekly backups; default 26, 0 disables
   # restic, optional
   backup_restic_env_file: /etc/restic/env             # default /etc/restic/env
   backup_restic_read_data_subset: 1/7                 # weekly check, default 1/7
@@ -128,6 +153,7 @@ spec:
     - CHECK_BACKUP_S3_ACCESS_KEY={{ .annotations.backup_s3_access_key }}
     - CHECK_BACKUP_S3_SECRET_KEY={{ .annotations.backup_s3_secret_key }}
     - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "/var/archives" }}
+    - CHECK_BACKUP_MAX_AGE={{ .annotations.backup_max_age | default "" }}
   runtime_assets:
     - opsone/sensu-plugins-backup
   interval: 3600
@@ -153,6 +179,7 @@ spec:
     - CHECK_BACKUP_FTP_PASSWORD={{ .annotations.backup_ftp_password }}
     - CHECK_BACKUP_FTP_DIRECTORY={{ .annotations.backup_ftp_directory | default "" }}
     - CHECK_BACKUP_DIRECTORY={{ .annotations.backup_directory | default "/var/archives" }}
+    - CHECK_BACKUP_MAX_AGE={{ .annotations.backup_max_age | default "" }}
   runtime_assets:
     - opsone/sensu-plugins-backup
   interval: 3600
@@ -164,7 +191,7 @@ spec:
 
 ### restic
 
-Two checks: a quick one (repository structure, a few seconds) and a weekly one reading a subset of the data. `--read-data` (`CHECK_BACKUP_RESTIC_READ_DATA=true`) reads the whole repository: keep it for small repositories, with a matching `timeout`.
+Two checks: a quick one (repository structure, a few seconds, plus the snapshot age) and a weekly one reading a subset of the data, with the age check disabled to avoid a duplicate alert. The age is only checked once a day with the quick check: lower its `interval` for a faster alert. `--read-data` (`CHECK_BACKUP_RESTIC_READ_DATA=true`) reads the whole repository: keep it for small repositories, with a matching `timeout`.
 
 ```yaml
 ---
@@ -176,6 +203,7 @@ spec:
   command: check-backup-restic
   env_vars:
     - CHECK_BACKUP_RESTIC_ENV_FILE={{ .annotations.backup_restic_env_file | default "" }}
+    - CHECK_BACKUP_MAX_AGE={{ .annotations.backup_max_age | default "" }}
   runtime_assets:
     - opsone/sensu-plugins-backup
   interval: 86400
@@ -193,6 +221,7 @@ spec:
   env_vars:
     - CHECK_BACKUP_RESTIC_ENV_FILE={{ .annotations.backup_restic_env_file | default "" }}
     - CHECK_BACKUP_RESTIC_READ_DATA_SUBSET={{ .annotations.backup_restic_read_data_subset | default "1/7" }}
+    - CHECK_BACKUP_MAX_AGE=0
   runtime_assets:
     - opsone/sensu-plugins-backup
   cron: "0 4 * * 0"

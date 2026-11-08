@@ -24,11 +24,13 @@ Version comes from `git describe --tags` (override with `VERSION=`), injected vi
 cmd/check-backup-s3/      # S3 presence/size check (minio-go)
 cmd/check-backup-ftp/     # FTP presence/size check (jlaffaye/ftp, PASV trusting server IP)
 cmd/check-backup-restic/  # runs `restic check`, env loaded from a dotenv file (godotenv)
-internal/backup/          # LocalFiles (skips dirs, hidden, .md5), Verify against a Remote, output helpers
+internal/backup/          # LocalFiles (skips dirs, hidden, .md5), Verify against a Remote, age check (Set, CheckAge, Merge), output helpers
 integration/              # Dockerfile + run.sh
 scripts/asset-yml.sh      # builds the Sensu asset definition from the checksums file
 ```
 
 S3/FTP checks implement `backup.Remote` (`Size(ctx, name)` returning `backup.ErrNotFound`) and delegate to `backup.Verify`, which reports every problem. Missing/mismatch and remote errors are CRITICAL; invalid args and local errors are UNKNOWN.
+
+Every check also runs an age check (`--max-age`, default 26h, 0 disables), merged into its result with `backup.Merge`: S3/FTP group local archives by name without the backup-manager date (`backup.ArchiveSets`), restic uses `restic snapshots --latest 1 --group-by host,paths --json`.
 
 Options are declared with `sensu.PluginConfigOption`, each with an env var. `-h` is reserved by cobra for `--help` (redefining it panics).

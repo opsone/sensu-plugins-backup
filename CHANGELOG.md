@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+- Backup age check, on by default in `check-backup-s3`, `check-backup-ftp` and `check-backup-restic`: the newest backup of each set must be younger than `--max-age` hours (`CHECK_BACKUP_MAX_AGE`, default 26, `0` disables it). Catches backups that silently stop, completely or for one target only, while the existing checks stay OK.
+  - S3/FTP: local archives grouped by name without their backup-manager date (`host-etc.20261108.tar.gz` → `host-etc.*.tar.gz`), modification time of the newest file. An empty local directory is now critical.
+  - restic: newest snapshot of each host and paths group (`restic snapshots --latest 1 --group-by host,paths`), only when `restic check` succeeds.
+
 ### Removed
 - `linux/arm64` build: the asset only ships `linux/amd64`.
 

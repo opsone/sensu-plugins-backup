@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/sensu/sensu-plugin-sdk/sensu"
 )
@@ -49,7 +50,13 @@ func TestLocalFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []File{{"db.sql.gz", 5}, {"files.tar.gz", 0}, {"latest.sql.gz", 5}}
+	for i := range got {
+		if got[i].ModTime.IsZero() {
+			t.Errorf("%s: zero ModTime", got[i].Name)
+		}
+		got[i].ModTime = time.Time{}
+	}
+	want := []File{{Name: "db.sql.gz", Size: 5}, {Name: "files.tar.gz"}, {Name: "latest.sql.gz", Size: 5}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("LocalFiles() = %v, want %v", got, want)
 	}
@@ -60,7 +67,7 @@ func TestLocalFiles(t *testing.T) {
 }
 
 func TestVerify(t *testing.T) {
-	files := []File{{"b.tar.gz", 10}, {"a.sql.gz", 20}, {"c.tar.gz", 30}}
+	files := []File{{Name: "b.tar.gz", Size: 10}, {Name: "a.sql.gz", Size: 20}, {Name: "c.tar.gz", Size: 30}}
 
 	tests := []struct {
 		name   string

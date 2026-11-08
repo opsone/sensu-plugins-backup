@@ -24,13 +24,14 @@ type Config struct {
 	FTPDirectory string
 	Directory    string
 	Timeout      int
+	MaxAge       int
 }
 
 var (
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
 			Name:     "check-backup-ftp",
-			Short:    "Check that local archives are present on an FTP server with the same size",
+			Short:    "Check that local archives are present on an FTP server with the same size, and recent",
 			Keyspace: "sensu.io/plugins/check-backup-ftp/config",
 		},
 	}
@@ -85,6 +86,7 @@ var (
 			Usage:    "Timeout of the whole verification in seconds",
 			Value:    &plugin.Timeout,
 		},
+		backup.MaxAgeOption(&plugin.MaxAge),
 	}
 )
 
@@ -103,6 +105,9 @@ func checkArgs(event *corev2.Event) (int, error) {
 	if plugin.Timeout <= 0 {
 		return sensu.CheckStateUnknown, fmt.Errorf("--timeout must be greater than 0")
 	}
+	if err := backup.ValidateMaxAge(plugin.MaxAge); err != nil {
+		return sensu.CheckStateUnknown, err
+	}
 	return sensu.CheckStateOK, nil
 }
 
@@ -116,6 +121,7 @@ func executeCheck(event *corev2.Event) (int, error) {
 	defer cancel()
 
 	result := verify(ctx, files)
+	result = backup.WithArchiveAge(result, files, plugin.Directory, plugin.MaxAge)
 	backup.Print(plugin.Name, result)
 	return result.State, nil
 }

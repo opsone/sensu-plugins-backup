@@ -3,6 +3,7 @@ package main
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/sensu/sensu-plugin-sdk/sensu"
 
@@ -74,5 +75,30 @@ func TestEvaluate(t *testing.T) {
 				t.Errorf("evaluate() = %+v, want %+v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSnapshotSets(t *testing.T) {
+	data := []byte(`[
+  {"group_key": {"hostname": "web1", "paths": ["/etc", "/var/www"], "tags": null},
+   "snapshots": [
+     {"time": "2026-11-07T02:00:00.5+01:00", "short_id": "aaaa1111"},
+     {"time": "2026-11-08T02:00:00.5+01:00", "short_id": "bbbb2222"}]},
+  {"group_key": {"hostname": "web1", "paths": ["/home"], "tags": null}, "snapshots": []}
+]`)
+	got, err := snapshotSets(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []backup.Set{{Name: "web1:/etc,/var/www", Last: "snapshot bbbb2222", Time: time.Date(2026, 11, 8, 1, 0, 0, 5e8, time.UTC)}}
+	if len(got) != 1 || got[0].Name != want[0].Name || got[0].Last != want[0].Last || !got[0].Time.Equal(want[0].Time) {
+		t.Errorf("snapshotSets() = %v, want %v", got, want)
+	}
+
+	if got, err := snapshotSets([]byte("null")); err != nil || len(got) != 0 {
+		t.Errorf("snapshotSets(null) = %v, %v", got, err)
+	}
+	if _, err := snapshotSets([]byte("Fatal")); err == nil {
+		t.Error("expected an error for invalid JSON")
 	}
 }
